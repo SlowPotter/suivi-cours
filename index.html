@@ -661,7 +661,7 @@ async function syncWC(ev, id) {
   const btn = document.querySelector(`[onclick*="syncWC"][onclick*="${id}"]`);
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="sp"></span>'; }
   try {
-    const r = await fetch(`${wc.url}/?atelier-proxy=1&` + new URLSearchParams({ action: 'update', shop_url: wc.url, ck: wc.key, cs: wc.secret, order_id: n }), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'completed' }) });
+    const r = await fetch(`${wc.url}/wp-json/sp/v1/wc`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', shop_url: wc.url, ck: wc.key, cs: wc.secret, order_id: n }) });
     if (r.ok) { o.wcSynced = true; await atSave(o); rA(); notify(`${o.order} → Completed dans WooCommerce ✓`, 'ok'); }
     else { const e = await r.json().catch(() => ({})); notify(`Erreur WC : ${e.message || r.status}`, 'er'); if (btn) { btn.disabled = false; btn.textContent = '↑ Completed'; } }
   } catch(e) { notify('Proxy inaccessible — vérifiez functions.php', 'er'); if (btn) { btn.disabled = false; btn.textContent = '↑ Completed'; } }
