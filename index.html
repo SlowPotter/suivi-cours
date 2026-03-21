@@ -144,6 +144,11 @@ select.si.termine{background:#e8e8e8;color:#666;border-color:#ccc}
 /* NOTIF */
 .nt{position:fixed;bottom:14px;right:14px;background:var(--earth);color:var(--sand);padding:8px 13px;border-radius:3px;font-size:11px;opacity:0;transform:translateY(7px);transition:all .3s;z-index:999;border-left:3px solid var(--clay);pointer-events:none;max-width:280px}
 .nt.sh{opacity:1;transform:translateY(0)}.nt.ok{border-left-color:var(--grn)}.nt.er{border-left-color:var(--red)}
+th.sort{cursor:pointer;user-select:none}
+th.sort:hover{background:#5a3d2c}
+th.sort::after{content:'';margin-left:4px;opacity:.4;font-size:8px}
+th.sort.asc::after{content:'▲';opacity:1}
+th.sort.desc::after{content:'▼';opacity:1}
 .sp{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
@@ -333,7 +338,7 @@ select.si.termine{background:#e8e8e8;color:#666;border-color:#ccc}
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────
-let orders = [], curT = 'all', sf = 'all', ex = {};
+let orders = [], curT = 'all', sf = 'all', ex = {}, sortCol = 'date', sortDir = -1;
 let wc = { url: '', key: '', secret: '' };
 const TY = { collectif: 'Cours collectif', prive: 'Cours privé', duo: 'Cours duo', carte: 'Carte cadeau' };
 const LS_WC = 'sp-wc-v1';
@@ -545,7 +550,25 @@ function rT() {
     return true;
   });
 
-  document.getElementById('tH').innerHTML = '<tr><th>Commande</th><th>Acheteur</th><th>Détails</th><th>Montant TTC</th><th>Cours prévu</th><th>Statut</th><th>Sync WC</th><th>Notes</th><th></th></tr>';
+  // Sort
+  const cols = ['order','name','subtype','amount','coursDate','status'];
+  list.sort((a, b) => {
+    let av = a[sortCol] || '', bv = b[sortCol] || '';
+    if (sortCol === 'amount') { av = parseFloat(av)||0; bv = parseFloat(bv)||0; }
+    if (av < bv) return -sortDir;
+    if (av > bv) return sortDir;
+    return 0;
+  });
+
+  const thLabels = [
+    {l:'Commande',k:'order'},{l:'Acheteur',k:'name'},{l:'Détails',k:'subtype'},
+    {l:'Montant TTC',k:'amount'},{l:'Cours prévu',k:'coursDate'},{l:'Statut',k:'status'},
+    {l:'Sync WC',k:''},{l:'Notes',k:''},{l:'',k:''}
+  ];
+  document.getElementById('tH').innerHTML = '<tr>' + thLabels.map(h =>
+    h.k ? `<th class="sort${sortCol===h.k ? (sortDir===1?' asc':' desc') : ''}" onclick="sSort('${h.k}')">${h.l}</th>`
+         : `<th>${h.l}</th>`
+  ).join('') + '</tr>';
   const eS = document.getElementById('eS'), tB = document.getElementById('tB');
   if (!list.length) { tB.innerHTML = ''; eS.style.display = 'block'; return; }
   eS.style.display = 'none';
@@ -569,6 +592,7 @@ function rT() {
   }).join('');
 }
 
+function sSort(col) { if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = col === 'date' ? -1 : 1; } rT(); }
 function swT(t) { curT = t; document.querySelectorAll('.tab').forEach(el => el.classList.toggle('on', el.dataset.t === t)); rT(); }
 function sSF(s, b) { sf = s; document.querySelectorAll('.fb').forEach(x => x.classList.remove('on')); b.classList.add('on'); rT(); }
 function onTC() { document.getElementById('bS').style.display = document.getElementById('eTy').value === 'carte' ? 'block' : 'none'; }
