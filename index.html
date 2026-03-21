@@ -176,6 +176,7 @@ th.sort.desc::after{content:'▼';opacity:1}
   <div class="pb">
     <div class="ib pu"><strong>Proxy actif</strong> — code ajouté dans <code>functions.php</code> de votre thème enfant Bridge Child.<br>URL proxy : <code>https://slowpotter.com/?atelier-proxy=1</code></div>
     <div class="fg"><label>URL de la boutique</label><input type="text" id="wcU" placeholder="https://slowpotter.com"></div>
+    <div class="fg"><label>Token Airtable</label><input type="password" id="atT" placeholder="patXXXX…"></div>
     <div class="g2">
       <div class="fg"><label>Consumer Key</label><input type="text" id="wcK" placeholder="ck_xxxx"></div>
       <div class="fg"><label>Consumer Secret</label><input type="password" id="wcS" placeholder="cs_xxxx"></div>
@@ -346,9 +347,11 @@ const LS_WC = 'sp-wc-v1';
 // ── AIRTABLE ──────────────────────────────────────────────────────
 const AT_BASE = 'appoICqvUWmLq4Sc6';
 const AT_TABLE = 'tblbl2qXfWQbnm3yb';
-const AT_TOKEN = 'patG27FPJk1wd15YB.ea68f9e5f306e096b48461cb1749c2c2c528c1983ffc77cd290add13c543627e';
 const AT_URL = `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`;
-const AT_HEADERS = { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' };
+function getATHeaders() {
+  const token = localStorage.getItem('sp-at-token') || '';
+  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
 
 // Map entre notre modèle et les champs Airtable
 function toAT(o) {
@@ -404,7 +407,7 @@ async function atLoad() {
     let all = [], offset = null;
     do {
       const url = AT_URL + '?pageSize=100' + (offset ? `&offset=${offset}` : '');
-      const r = await fetch(url, { headers: AT_HEADERS });
+      const r = await fetch(url, { headers: getATHeaders() });
       const d = await r.json();
       if (d.records) all = all.concat(d.records.map(fromAT));
       offset = d.offset;
@@ -418,14 +421,14 @@ async function atSave(o) {
     // Check if record exists (has Airtable rec id starting with 'rec')
     if (o.id && o.id.startsWith('rec')) {
       const r = await fetch(`${AT_URL}/${o.id}`, {
-        method: 'PATCH', headers: AT_HEADERS,
+        method: 'PATCH', headers: getATHeaders(),
         body: JSON.stringify(toAT(o))
       });
       const d = await r.json();
       return fromAT(d);
     } else {
       const r = await fetch(AT_URL, {
-        method: 'POST', headers: AT_HEADERS,
+        method: 'POST', headers: getATHeaders(),
         body: JSON.stringify(toAT(o))
       });
       const d = await r.json();
@@ -437,7 +440,7 @@ async function atSave(o) {
 async function atDelete(id) {
   if (!id.startsWith('rec')) return;
   try {
-    await fetch(`${AT_URL}/${id}`, { method: 'DELETE', headers: AT_HEADERS });
+    await fetch(`${AT_URL}/${id}`, { method: 'DELETE', headers: getATHeaders() });
   } catch(e) { notify('Erreur suppression Airtable', 'er'); }
 }
 
@@ -448,7 +451,7 @@ async function atSaveBatch(newOrders) {
   for (const chunk of chunks) {
     try {
       await fetch(AT_URL, {
-        method: 'POST', headers: AT_HEADERS,
+        method: 'POST', headers: getATHeaders(),
         body: JSON.stringify({ records: chunk.map(toAT) })
       });
     } catch(e) { notify('Erreur import Airtable', 'er'); }
@@ -466,6 +469,8 @@ async function load() {
       document.getElementById('wcS').value = wc.secret || '';
       wcUI();
     }
+    const atToken = localStorage.getItem('sp-at-token');
+    if (atToken) document.getElementById('atT').value = '••••••••';
   } catch(e) {}
   // Orders from Airtable
   notify('Chargement…', '');
@@ -493,6 +498,8 @@ function saveWC() {
     key: document.getElementById('wcK').value.trim(),
     secret: document.getElementById('wcS').value.trim()
   };
+  const atToken = document.getElementById('atT').value.trim();
+  if (atToken) localStorage.setItem('sp-at-token', atToken);
   try {
     localStorage.setItem(LS_WC, JSON.stringify(wc));
     wcUI();
@@ -768,7 +775,7 @@ async function clearAll() {
   for (let i = 0; i < ids.length; i += 10) {
     const chunk = ids.slice(i, i + 10);
     const params = chunk.map(id => `records[]=${id}`).join('&');
-    await fetch(`${AT_URL}?${params}`, { method: 'DELETE', headers: AT_HEADERS });
+    await fetch(`${AT_URL}?${params}`, { method: 'DELETE', headers: getATHeaders() });
   }
   orders = []; rA();
   notify('Toutes les commandes supprimées', 'ok');
