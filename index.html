@@ -364,7 +364,7 @@ function toAT(o) {
       coursDate: o.coursDate || '',
       seances: String(o.seances || '1'),
       notes: o.notes || '',
-      wcSynced: o.wcSynced === true ? true : false,
+      wcSynced: o.wcSynced ? true : undefined,
       wcOrderId: o.wcOrderId || '',
     }
   };
