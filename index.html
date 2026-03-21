@@ -451,7 +451,7 @@ async function atSaveBatch(newOrders) {
     try {
       await fetch(AT_URL, {
         method: 'POST', headers: getATHeaders(),
-        body: JSON.stringify({ records: chunk.map(toAT) })
+        body: JSON.stringify({ records: chunk.map(o => { const r = toAT(o); delete r.fields.wcSynced; return r; }) })
       });
     } catch(e) { notify('Erreur import Airtable', 'er'); }
   }
