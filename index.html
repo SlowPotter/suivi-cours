@@ -874,7 +874,7 @@ async function importWC() {
           phone: wo.billing.phone || '',
           type: type,
           subtype: existing ? existing.subtype : subtype,
-          status: existing ? existing.status : 'a-planifier',
+          status: wo.status === 'completed' ? 'termine' : (existing ? existing.status : 'a-planifier'),
           coursDate: existing ? existing.coursDate : '',
           notes: existing ? existing.notes : '',
           beneName: existing ? existing.beneName : '',
